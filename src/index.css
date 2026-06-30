@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode in Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --primary: #2563EB;
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --bg-canvas: #F8FAFC;
+    --bg-card: #FFFFFF;
+    --border-accent: #E2E8F0;
+    --text-main: #0F172A;
+    --text-sub: #64748B;
+
+    --shadow-sm-val: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md-val: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg-val: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  }
+
+  :root.dark {
+    --primary: #3B82F6;
+    --success: #10B981;
+    --warning: #FBBF24;
+    --danger: #F87171;
+    --bg-canvas: #090A0F;
+    --bg-card: #121824;
+    --border-accent: #1E293B;
+    --text-main: #F8FAFC;
+    --text-sub: #94A3B8;
+
+    --shadow-sm-val: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md-val: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg-val: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Smooth transition for all themed elements on theme switch */
+  *,
+  *::before,
+  *::after {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* Opt-out: skip transitions on elements that animate independently */
+  .no-theme-transition,
+  .no-theme-transition *,
+  svg,
+  canvas,
+  video,
+  img {
+    transition: none !important;
+  }
+}
+
+@theme {
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-card: var(--bg-card);
+  --color-border-accent: var(--border-accent);
+
+  --color-text-main: var(--text-main);
+  --color-text-sub: var(--text-sub);
+
+  --shadow-sm: var(--shadow-sm-val);
+  --shadow-md: var(--shadow-md-val);
+  --shadow-lg: var(--shadow-lg-val);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-sub);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Linear-style dots pattern for backgrounds */
+.dots-pattern {
+  background-image: radial-gradient(var(--border-accent) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Subtle glow for dark mode active elements */
+.dark-glow {
+  box-shadow: 0 0 12px 1px rgba(37, 99, 235, 0.15);
+}
