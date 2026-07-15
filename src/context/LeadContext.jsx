@@ -1,25 +1,7 @@
-import { createContext, useContext, useCallback, useMemo } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { SAMPLE_LEADS } from '../data/sampleLeads';
-import { LEADS_STORAGE_KEY } from '../constants';
-
-/**
- * TypeScript-style definition of the Lead object shape.
- * 
- * @typedef {Object} Lead
- * @property {string} id - Unique identifier generated for the lead.
- * @property {string} name - Prospect's full name.
- * @property {string} company - Associated company name.
- * @property {string} email - Primary email address.
- * @property {string} phone - Contact phone number.
- * @property {'New' | 'Contacted' | 'Meeting Scheduled' | 'Proposal Sent' | 'Won' | 'Lost'} status - Pipeline status of the lead.
- * @property {'Website' | 'Referral' | 'LinkedIn' | 'Cold Call' | 'Email Campaign' | 'Other'} source - Acquisition channel.
- * @property {string} createdAt - ISO 8601 date string representation of when the lead was created.
- * @property {string} [value] - Optional estimated budget or deal value (e.g. '$8,500').
- * @property {string} [dateAdded] - Legacy YYYY-MM-DD date field for compatibility with table views.
- */
-
-
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
+import leadService from '../services/leadService';
+import { useAuth } from './AuthContext';
 
 /**
  * LeadContext object to provide global leads data and management operations.
@@ -28,92 +10,227 @@ export const LeadContext = createContext(null);
 
 /**
  * LeadProvider component that manages and distributes lead state.
- *
- * @param {Object} props - Component props.
- * @param {React.ReactNode} props.children - Child components to be wrapped.
- * @returns {React.ReactElement} The Context Provider wrapping child nodes.
  */
 export function LeadProvider({ children }) {
-  /**
-   * Persistent leads array backed by localStorage.
-   * - On first load (empty storage): initialises with SAMPLE_LEADS.
-   * - On subsequent loads: restores the last-saved array from storage.
-   * - Falls back to SAMPLE_LEADS if localStorage is unavailable or corrupted.
-   *
-   * setLeads accepts both direct values and functional updaters, identical
-   * to React's own useState setter.
-   */
-  const [leads, setLeads] = useLocalStorage(LEADS_STORAGE_KEY, SAMPLE_LEADS);
+  const [leads, setLeads] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 0,
+  });
+
+  const { isAuthenticated } = useAuth();
 
   /**
-   * Adds a new lead to the CRM workspace.
-   * Generates a unique ID and appends creation date metadata automatically.
-   *
-   * @param {Omit<Lead, 'id' | 'createdAt' | 'dateAdded'>} newLeadData - Lead attributes collected from form.
-   * @returns {Lead} The newly created lead object.
+   * Fetches leads from the backend database with optional filters.
+   * 
+   * @param {Object} params - Query filters (e.g. { status, search, page, limit })
    */
-  const addLead = useCallback((newLeadData) => {
-    const isoString = new Date().toISOString();
-    
-    // Generate secure unique ID, falling back to timestamp-based string if unavailable
-    const generatedId = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `lead-${Date.now()}`;
+  const fetchLeads = useCallback(async (params = {}) => {
+    setIsLoading(true);
+    try {
+      const responseData = await leadService.getLeads(params);
+      // Backend paginatedResponse returns `{ success: true, data: Array, pagination: Object }`
+      const mapped = (responseData.data || []).map(lead => ({
+        ...lead,
+        id: lead.id || lead._id,
+      }));
+      setLeads(mapped);
+      setPagination(responseData.pagination || { total: 0, page: 1, limit: 20, pages: 0 });
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to fetch leads';
+      toast.error(errorMsg, {
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    const newLead = {
-      ...newLeadData,
-      id: generatedId,
-      createdAt: isoString,
-      dateAdded: isoString.split('T')[0] // For backward compatibility with existing tables
-    };
-
-    setLeads((prev) => [newLead, ...prev]);
-    return newLead;
-  }, [setLeads]);
+  // Fetch leads automatically on session start/change
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchLeads();
+    } else {
+      setLeads([]);
+      setPagination({ total: 0, page: 1, limit: 20, pages: 0 });
+    }
+  }, [isAuthenticated, fetchLeads]);
 
   /**
-   * Updates fields of an existing lead matching the specified identifier.
-   *
-   * @param {string|number} id - Unique identifier of the lead to update.
-   * @param {Partial<Lead>} updatedFields - Subset of lead attributes to merge.
-   * @returns {void}
+   * Adds a new lead to the database.
+   * 
+   * @param {Object} newLeadData - Lead attributes from form.
+   * @returns {Promise<Object>} The newly created lead object.
    */
-  const updateLead = useCallback((id, updatedFields) => {
-    setLeads((prev) =>
-      prev.map((lead) =>
-        lead.id === id ? { ...lead, ...updatedFields } : lead
-      )
-    );
-  }, [setLeads]);
+  const addLead = useCallback(async (newLeadData) => {
+    setIsLoading(true);
+    try {
+      const responseData = await leadService.createLead(newLeadData);
+      const rawLead = responseData.data;
+      const newLead = { ...rawLead, id: rawLead.id || rawLead._id };
+      setLeads((prev) => [newLead, ...prev]);
+      
+      toast.success(`Lead "${newLead.name}" registered successfully!`, {
+        icon: '🎉',
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      return newLead;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to add lead';
+      toast.error(errorMsg, {
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   /**
-   * Deletes a lead from the state tracking.
-   *
-   * @param {string|number} id - Unique identifier of the lead to remove.
-   * @returns {void}
+   * Updates fields of an existing lead.
+   * 
+   * @param {string} id - Unique identifier (ObjectId) of the lead.
+   * @param {Object} updatedFields - Fields to update.
+   * @returns {Promise<Object>} The updated lead object.
    */
-  const deleteLead = useCallback((id) => {
-    setLeads((prev) => prev.filter((lead) => lead.id !== id));
-  }, [setLeads]);
+  const updateLead = useCallback(async (id, updatedFields) => {
+    setIsLoading(true);
+    try {
+      const responseData = await leadService.updateLead(id, updatedFields);
+      const rawLead = responseData.data;
+      const updatedLead = { ...rawLead, id: rawLead.id || rawLead._id };
+      setLeads((prev) =>
+        prev.map((lead) => (lead.id === id || lead._id === id ? updatedLead : lead))
+      );
+      
+      toast.success(`Lead "${updatedLead.name}" updated successfully!`, {
+        icon: '✓',
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      return updatedLead;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to update lead';
+      toast.error(errorMsg, {
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Updates status specifically using PATCH /api/leads/:id/status
+   */
+  const updateLeadStatus = useCallback(async (id, status) => {
+    setIsLoading(true);
+    try {
+      const responseData = await leadService.updateLeadStatus(id, status);
+      const rawLead = responseData.data;
+      const updatedLead = { ...rawLead, id: rawLead.id || rawLead._id };
+      setLeads((prev) =>
+        prev.map((lead) => (lead.id === id || lead._id === id ? updatedLead : lead))
+      );
+      toast.success(`Lead status updated to "${status}"!`, {
+        icon: '✓',
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      return updatedLead;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to update status';
+      toast.error(errorMsg, {
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Deletes a lead from the database.
+   * 
+   * @param {string} id - Unique identifier (ObjectId) of the lead.
+   */
+  const deleteLead = useCallback(async (id) => {
+    setIsLoading(true);
+    try {
+      await leadService.deleteLead(id);
+      setLeads((prev) => prev.filter((lead) => lead.id !== id && lead._id !== id));
+      
+      toast.success('Lead deleted successfully.', {
+        icon: '🗑️',
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to delete lead';
+      toast.error(errorMsg, {
+        style: {
+          background: 'var(--bg-card)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-accent)',
+        },
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   /**
    * Resolves a lead object by its identifier.
-   *
-   * @param {string|number} id - Unique identifier to look up.
-   * @returns {Lead|undefined} The matched lead object or undefined if not found.
    */
   const getLeadById = useCallback((id) => {
-    return leads.find((lead) => lead.id === id);
+    return leads.find((lead) => lead.id === id || lead._id === id);
   }, [leads]);
 
   // Context value bundle containing both state and action dispatchers
   const contextValue = useMemo(() => ({
     leads,
+    isLoading,
+    pagination,
+    fetchLeads,
     addLead,
     updateLead,
+    updateLeadStatus,
     deleteLead,
-    getLeadById
-  }), [leads, addLead, updateLead, deleteLead, getLeadById]);
+    getLeadById,
+  }), [leads, isLoading, pagination, fetchLeads, addLead, updateLead, updateLeadStatus, deleteLead, getLeadById]);
 
   return (
     <LeadContext.Provider value={contextValue}>
@@ -124,10 +241,6 @@ export function LeadProvider({ children }) {
 
 /**
  * Custom hook to consume LeadContext with safety checks.
- * Ensures the component is wrapped under LeadProvider.
- *
- * @throws {Error} If consumed outside of a LeadProvider.
- * @returns {Object} Context value including leads and mutative actions.
  */
 export function useLeads() {
   const context = useContext(LeadContext);

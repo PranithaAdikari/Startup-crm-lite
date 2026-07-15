@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, BarChart3, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, TrendingUp, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const NAVIGATION_ITEMS = [
   { name: 'Dashboard', to: '/', icon: LayoutDashboard, subLabel: 'Overview & Metrics' },
@@ -13,9 +14,16 @@ const NAVIGATION_ITEMS = [
  * Supports a persistent responsive layout (tablet/desktop) and a mobile drawer layout.
  */
 export default function Sidebar({ isMobileDrawer = false, onClose }) {
+  const { user, logout } = useAuth();
+
   const handleLinkClick = () => {
     if (onClose) onClose();
   };
+
+  // Determine user initials for the avatar badge
+  const userInitial = user?.name
+    ? user.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'F';
 
   // Determine outer class depending on whether it's persistent or rendered inside drawer
   const asideClass = isMobileDrawer
@@ -84,22 +92,49 @@ export default function Sidebar({ isMobileDrawer = false, onClose }) {
         })}
       </nav>
 
-      {/* Footer / version details */}
+      {/* Footer / User Profile section */}
       <div className={`border-t border-border-accent transition-all duration-300 ${
         isMobileDrawer ? 'p-4' : 'p-2 lg:p-4'
-      }`}>
-        <div className={`flex items-center gap-3 py-1.5 ${
-          isMobileDrawer ? 'px-2 justify-start' : 'md:justify-center lg:justify-start lg:px-2'
+      } mt-auto`}>
+        <div className={`flex flex-col gap-3 ${
+          isMobileDrawer ? 'px-2' : 'md:items-center lg:items-stretch lg:px-2'
         }`}>
-          <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary shrink-0 shadow-inner">
-            S
+          {/* User profile summary details */}
+          <div className="flex items-center gap-3 py-1.5 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary shrink-0 shadow-inner select-none">
+              {userInitial}
+            </div>
+            <div className={`min-w-0 transition-opacity duration-300 ${
+              isMobileDrawer ? 'block' : 'md:hidden lg:block'
+            }`}>
+              <span className="text-xs font-bold text-text-main block truncate" title={user?.name}>
+                {user?.name || 'Founder'}
+              </span>
+              <span className="text-[10px] text-text-sub block truncate" title={user?.email}>
+                {user?.email || 'v1.0.0 (Beta)'}
+              </span>
+            </div>
           </div>
-          <div className={`min-w-0 transition-opacity duration-300 ${
-            isMobileDrawer ? 'block' : 'md:hidden lg:block'
-          }`}>
-            <span className="text-xs font-bold text-text-main block truncate">Founder Workspace</span>
-            <span className="text-[10px] text-text-sub block truncate">v1.0.0 (Beta)</span>
-          </div>
+
+          {/* Action Sign Out Button */}
+          <button
+            type="button"
+            onClick={logout}
+            className={`flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-danger hover:bg-danger/10 rounded-xl transition-all duration-200 cursor-pointer ${
+              isMobileDrawer 
+                ? 'justify-start w-full' 
+                : 'md:justify-center lg:justify-start md:w-11 lg:w-full md:p-2 lg:px-3 lg:py-2'
+            }`}
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <LogOut className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-opacity duration-300 ${
+              isMobileDrawer ? 'block' : 'md:hidden lg:block'
+            }`}>
+              Sign Out
+            </span>
+          </button>
         </div>
       </div>
     </aside>

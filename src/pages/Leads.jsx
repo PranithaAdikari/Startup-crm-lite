@@ -82,50 +82,33 @@ export default function Leads() {
    *
    * @param {Object} formPayload - Form data compiled from LeadForm.
    */
-  const handleFormSubmit = useCallback((formPayload) => {
-    if (selectedLead) {
-      // Edit / Update mode
-      updateLead(selectedLead.id, formPayload);
-      toast.success(`Lead "${formPayload.name}" updated successfully!`, {
-        icon: '✓',
-        style: {
-          background: 'var(--bg-card)',
-          color: 'var(--text-main)',
-          border: '1px solid var(--border-accent)',
-        },
-      });
-    } else {
-      // Create mode
-      const newLead = addLead(formPayload);
-      toast.success(`Lead "${newLead.name}" registered successfully!`, {
-        icon: '🎉',
-        style: {
-          background: 'var(--bg-card)',
-          color: 'var(--text-main)',
-          border: '1px solid var(--border-accent)',
-        },
-      });
+  const handleFormSubmit = useCallback(async (formPayload) => {
+    try {
+      if (selectedLead) {
+        // Edit / Update mode
+        await updateLead(selectedLead.id || selectedLead._id, formPayload);
+      } else {
+        // Create mode
+        await addLead(formPayload);
+      }
+      handleCloseModal();
+    } catch (err) {
+      console.error('[Leads] Submit failed:', err);
     }
-    handleCloseModal();
   }, [selectedLead, addLead, updateLead, handleCloseModal]);
 
   /**
-   * Deletes a lead and alerts the user with an error/danger styled toast message.
+   * Deletes a lead and alerts the user.
    *
    * @param {string|number} id - Target identifier to delete.
    */
-  const handleDeleteLead = useCallback((id) => {
-    const leadToDelete = leads.find((l) => l.id === id);
-    deleteLead(id);
-    toast.error(`Lead "${leadToDelete ? leadToDelete.name : 'Prospect'}" has been removed.`, {
-      icon: '🗑️',
-      style: {
-        background: 'var(--bg-card)',
-        color: 'var(--text-main)',
-        border: '1px solid var(--border-accent)',
-      },
-    });
-  }, [leads, deleteLead]);
+  const handleDeleteLead = useCallback(async (id) => {
+    try {
+      await deleteLead(id);
+    } catch (err) {
+      console.error('[Leads] Delete failed:', err);
+    }
+  }, [deleteLead]);
 
   // Derive filteredLeads based on search queries and active category tags
   const filteredLeads = useMemo(() => {
