@@ -160,7 +160,7 @@ app.use('/api',      generalLimiter);
  */
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  'https://your-app.vercel.app', // ← Replace with your real Vercel URL before deploying
+  'https://crm-lite-tau.vercel.app', // ← Replace with your real Vercel URL before deploying
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
