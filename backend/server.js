@@ -160,13 +160,14 @@ app.use('/api',      generalLimiter);
  */
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  'https://up-crm-lite-tau.vercel.app', // ← Replace with your real Vercel URL before deploying
+  'https://crm-lite-tau.vercel.app',
+  'https://up-crm-lite-tau.vercel.app',      // The URL from your first screenshot
+  'https://startup-crm-lite-tau.vercel.app', // The actual URL sending the request
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
 ].filter(Boolean);
-
 app.use(
   cors({
     /**
