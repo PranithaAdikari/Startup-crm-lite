@@ -37,16 +37,25 @@ api.interceptors.response.use(
       }
     }
     
-    // 2. Network Errors (e.g., server offline, DNS resolution failure)
+    // 2. Network Errors (e.g., server offline, CORS rejection, or DNS resolution failure)
     if (!error.response || error.code === 'ERR_NETWORK') {
+      const targetUrl = error.config?.baseURL || window.location.origin;
+      const isLocalhost = targetUrl.includes('localhost') || targetUrl.includes('127.0.0.1');
+
       console.error('[API Network Error Details]:', {
         message: error.message,
         code: error.code,
+        targetUrl,
         config: error.config,
-        request: error.request
       });
-      toast.error('Cannot connect to server. Check your connection.', {
+
+      const message = isLocalhost
+        ? 'Cannot connect to backend (port 5000). Run `npm run dev` to start both frontend & backend.'
+        : 'Cannot connect to backend server. Please verify the backend service is deployed and running.';
+
+      toast.error(message, {
         id: 'network-connection-error', // Static ID prevents toast spamming on multiple parallel calls
+        duration: 5000,
         style: {
           background: 'var(--bg-card)',
           color: 'var(--text-main)',

@@ -48,7 +48,10 @@ export default function Register() {
       // Success redirection is handled by AuthContext but fall back to navigate('/') if needed
       navigate('/');
     } catch (error) {
-      const errMsg = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+      let errMsg = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+      if (error.code === 'ERR_NETWORK' || !error.response) {
+        errMsg = 'Cannot reach backend server. Please verify the backend is running.';
+      }
       setLocalError(errMsg);
     } finally {
       setIsSubmitting(false);

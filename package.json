@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "npm install --prefix backend",
-    "dev": "concurrently \"vite\" \"cd backend && npm run dev\"",
+    "dev": "concurrently \"vite\" \"npm run dev --prefix backend\"",
     "build": "vite build",
     "start": "npm start --prefix backend",
     "lint": "eslint .",

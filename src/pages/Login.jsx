@@ -34,7 +34,10 @@ export default function Login() {
       navigate('/');
     } catch (error) {
       // Extract error message returned by API validator or server
-      const errMsg = error.response?.data?.message || error.message || 'Incorrect email or password.';
+      let errMsg = error.response?.data?.message || error.message || 'Incorrect email or password.';
+      if (error.code === 'ERR_NETWORK' || !error.response) {
+        errMsg = 'Cannot reach backend server. Please verify the backend is running.';
+      }
       setLocalError(errMsg);
     } finally {
       setIsSubmitting(false);

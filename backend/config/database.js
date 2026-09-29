@@ -14,13 +14,31 @@ dotenv.config();
  * @returns {Promise<void>} Resolves when connection is successful
  */
 const connectDB = async () => {
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/startup-crm-lite';
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
-
-    console.log(`MongoDB Atlas Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+    console.error(`MongoDB Connection Error (${uri}): ${error.message}`);
+    
+    // Attempt automatic fallback to local MongoDB if primary fails
+    const localUri = 'mongodb://127.0.0.1:27017/startup-crm-lite';
+    if (uri !== localUri) {
+      try {
+        console.warn(`[MongoDB] Attempting fallback to local instance: ${localUri}`);
+        const fallbackConn = await mongoose.connect(localUri, {
+          serverSelectionTimeoutMS: 5000,
+        });
+        console.log(`MongoDB Connected (Fallback): ${fallbackConn.connection.host}`);
+        return;
+      } catch (fallbackError) {
+        console.error(`MongoDB Local Fallback Error: ${fallbackError.message}`);
+      }
+    }
+    
+    console.warn('[MongoDB Warning] Could not connect to MongoDB. Express will remain running to return informative responses.');
   }
 };
 

@@ -11,35 +11,46 @@ import rateLimit from 'express-rate-limit';
 // because req.query is a getter-only property (defineGetter in Express request.js).
 // We use an inline sanitizer below that mutates objects in-place instead.
 
-// Override default DNS servers to prevent querySrv ECONNREFUSED on MongoDB Atlas SRV resolution
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Safely override default DNS servers to help with querySrv ECONNREFUSED on MongoDB Atlas SRV resolution
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+} catch {
+  // Ignore DNS configuration failure in environments where setServers is restricted
+}
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ---------------------------------------------------------------------------
-// 1. Environment Variables — load FIRST, before any other module reads them
+// 1. Environment Variables — load from backend/.env first, then root .env
 // ---------------------------------------------------------------------------
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const PORT     = process.env.PORT || 5000;
 
 // ---------------------------------------------------------------------------
-// 2. Environment Validation — fail fast before touching the network or DB
+// 2. Environment Validation — ensure required vars have values
 // ---------------------------------------------------------------------------
-
-/**
- * Validates that all required environment variables are present at startup.
- * Logs each missing variable by name and exits with code 1 if any are absent.
- * This prevents silent misconfigurations reaching production.
- *
- * Required variables:
- *  - MONGODB_URI  : Full MongoDB Atlas / local connection string.
- *  - JWT_SECRET   : Secret used to sign and verify JSON Web Tokens.
- *  - PORT         : TCP port the Express server will bind to.
- *
- * @function checkRequiredEnvVars
- * @returns {void} Exits the process if any variable is missing.
- */
 const checkRequiredEnvVars = () => {
+  // In development, apply safe defaults if missing to prevent instant process exit
+  if (NODE_ENV !== 'production') {
+    if (!process.env.MONGODB_URI) {
+      process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/startup-crm-lite';
+    }
+    if (!process.env.JWT_SECRET) {
+      process.env.JWT_SECRET = 'f46ca6bc396dea0455c032cb8053a4f61a85b0600a910441e0b1747a48a3102e';
+    }
+    if (!process.env.PORT) {
+      process.env.PORT = '5000';
+    }
+    return;
+  }
+
   const REQUIRED = ['MONGODB_URI', 'JWT_SECRET', 'PORT'];
   const missing  = REQUIRED.filter((key) => !process.env[key]);
 
@@ -129,7 +140,7 @@ const generalLimiter = rateLimit({
  */
 const authLimiter = rateLimit({
   windowMs:         15 * 60 * 1000, // 15 minutes
-  max:              10,
+  max:              NODE_ENV === 'production' ? 10 : 100, // Generous in development, strict in production
   standardHeaders:  true,
   legacyHeaders:    false,
   message: {
@@ -161,41 +172,43 @@ app.use('/api',      generalLimiter);
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'https://crm-lite-tau.vercel.app',
-  'https://up-crm-lite-tau.vercel.app',      // The URL from your first screenshot
-  'https://startup-crm-lite-tau.vercel.app', // The actual URL sending the request
+  'https://up-crm-lite-tau.vercel.app',
+  'https://startup-crm-lite-tau.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
 ].filter(Boolean);
+
 app.use(
   cors({
-    /**
-     * Dynamic origin validator.
-     * - Allows requests with no origin header (server-to-server / curl / Postman).
-     * - Allows any origin explicitly in the allowedOrigins array.
-     * - In development, also allows any localhost / 127.0.0.1 port dynamically.
-     * - Rejects everything else with a CORS error (caught by the error handler).
-     *
-     * @param {string|undefined} origin  - The incoming request's Origin header.
-     * @param {Function}         callback - CORS callback: (err, allow) => void
-     */
     origin: (origin, callback) => {
-      // No origin = same-origin or non-browser client (Postman, server-to-server)
+      // 1. Allow server-to-server, Postman, curl, or same-origin requests
       if (!origin) return callback(null, true);
 
-      // Explicit allowlist check
+      // 2. Explicit allowlist check
       if (allowedOrigins.includes(origin)) return callback(null, true);
 
-      // In development: allow any localhost / 127.0.0.1 port (flexible for tooling)
-      if (NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(origin)) {
+      // 3. Allow any localhost / 127.0.0.1 / IPv6 / LAN IP (e.g. 192.168.x.x, 10.x.x.x)
+      if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
 
-      // Reject everything else
-      callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
+      // 4. Allow any Vercel deployment preview / production domain
+      if (/^https:\/\/[a-z0-9\-]+(\.vercel\.app|\.up\.railway\.app)$/i.test(origin)) {
+        return callback(null, true);
+      }
+
+      // 5. In development, allow all origins to prevent dev friction
+      if (NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+
+      // 6. Production rejection
+      return callback(new Error(`CORS policy: origin '${origin}' is not allowed`), false);
     },
-    credentials: true, // Required for cookies / Authorization headers in cross-origin requests
+    credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
 
@@ -295,14 +308,27 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
  * Returns current timestamp and environment so ops teams can quickly verify
  * which build/region is responding.
  */
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success:     true,
     status:      'OK',
+    dbStatus:    mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     environment: NODE_ENV,
     timestamp:   new Date().toISOString(),
     uptime:      `${Math.floor(process.uptime())}s`,
   });
+});
+
+// Database connectivity guard: Return clean HTTP 503 instead of crashing or hanging if DB is down
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') && req.path !== '/api/health' && mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database is currently offline. Please ensure MongoDB is running.',
+    });
+  }
+  next();
 });
 
 // Primary API routers
