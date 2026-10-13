@@ -1,9 +1,23 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Create an Axios instance using the backend URL set in environment variables
+// Resolve backend base URL:
+// 1. Explicit env variable (VITE_API_URL) if provided.
+// 2. In local development (DEV mode), empty string lets Vite proxy forward /api to localhost:5000.
+// 3. In production, fallback directly to the deployed Render backend URL.
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  return 'https://startup-crm-lite-1-unmy.onrender.com';
+};
+
+// Create an Axios instance using the resolved backend URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: getBaseURL(),
 });
 
 // Request Interceptor: Inject the JWT authorization token dynamically on every request
