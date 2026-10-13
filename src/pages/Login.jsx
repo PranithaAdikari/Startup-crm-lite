@@ -142,7 +142,7 @@ export default function Login() {
         {/* Links to registration page */}
         <div className="border-t border-border-accent/40 mt-8 pt-6 text-center">
           <p className="text-sm text-text-sub">
-            New to CRM Lite?{' '}
+            New to BussinessBridge?{' '}
             <Link
               to="/register"
               className="font-bold text-primary hover:underline transition-colors focus:outline-none"

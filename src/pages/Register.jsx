@@ -73,7 +73,7 @@ export default function Register() {
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-text-main tracking-tight">Create Account</h2>
           <p className="text-sm text-text-sub mt-1.5 text-center">
-            Sign up to get started with Startup CRM Lite.
+            Sign up to get started with BussinessBridge.
           </p>
         </div>
 

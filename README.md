@@ -1,7 +1,7 @@
-# 🚀 Startup CRM Lite
+# 🚀 BussinessBridge
 
 <div align="center">
-  <img src="https://via.placeholder.com/150?text=Startup CRM Lite+Logo" alt="Startup CRM Lite Logo" width="150" height="150" />
+  <img src="https://via.placeholder.com/150?text=BussinessBridge+Logo" alt="BussinessBridge Logo" width="150" height="150" />
 </div>
 
 <div align="center">
@@ -37,7 +37,7 @@
 ---
 
 ## 🌟 Project Overview
-**Startup CRM Lite** is a lightweight, modern Full-Stack Customer Relationship Management (CRM) application designed specifically for early-stage startups and small sales teams. It offers a streamlined, distraction-free environment to track, qualify, and convert sales leads without the bloat and complexity of enterprise tools like Salesforce or HubSpot. 
+**BussinessBridge** is a lightweight, modern Full-Stack Customer Relationship Management (CRM) application designed specifically for early-stage startups and small sales teams. It offers a streamlined, distraction-free environment to track, qualify, and convert sales leads without the bloat and complexity of enterprise tools like Salesforce or HubSpot. 
 
 ## 🚨 Problem Statement
 Early-stage startups often rely on scattered spreadsheets or overly complex enterprise CRMs to manage their sales pipeline. Spreadsheets lack validation, collaboration, and analytics, while enterprise CRMs are expensive, hard to configure, and require significant onboarding time. This creates a gap for a simple, fast, and secure lead management tool tailored to small teams.
@@ -77,7 +77,7 @@ To provide a fast, secure, and visually appealing open-source CRM that allows fo
 ## 🏗️ System Architecture
 
 ### High-Level Architecture Overview
-Startup CRM Lite utilizes a decoupled **Client-Server Architecture**. 
+BussinessBridge utilizes a decoupled **Client-Server Architecture**. 
 - **Tier 1 (Presentation Layer)**: A Single Page Application (SPA) built with React and Vite.
 - **Tier 2 (Application Layer)**: A RESTful API built on Node.js and Express.
 - **Tier 3 (Data Layer)**: A MongoDB database managed via Mongoose ODM.

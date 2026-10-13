@@ -12,7 +12,7 @@ import QuickActions from '../components/dashboard/QuickActions';
 
 /**
  * Dashboard Component
- * The main landing area of Startup CRM Lite assembling all metric indicators,
+ * The main landing area of BussinessBridge assembling all metric indicators,
  * visual pipeline segments, quick operation actions, and tabular prospect listings.
  *
  * @returns {React.ReactElement} The rendered Dashboard page.

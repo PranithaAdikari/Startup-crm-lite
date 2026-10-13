@@ -42,7 +42,7 @@ export default function Sidebar({ isMobileDrawer = false, onClose }) {
         <span className={`font-bold text-lg text-text-main tracking-tight transition-opacity duration-300 ${
           isMobileDrawer ? 'block' : 'md:hidden lg:block'
         }`}>
-          CRM Lite
+          BussinessBridge
         </span>
       </div>
 

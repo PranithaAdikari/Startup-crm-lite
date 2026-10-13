@@ -79,8 +79,8 @@ export const THEME_STORAGE_KEY = 'startup-crm-theme';
  * App metadata constants used across components and HTML.
  */
 export const APP_META = {
-  name: 'CRM Lite',
-  tagline: 'Startup CRM Lite',
+  name: 'BussinessBridge',
+  tagline: 'BussinessBridge',
   version: 'v1.0.0',
   stage: 'Beta',
   description: 'A lightweight CRM for startups to track, qualify, and convert leads.',

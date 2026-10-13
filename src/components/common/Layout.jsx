@@ -70,7 +70,7 @@ export default function Layout() {
               <div className="p-1 bg-primary/10 rounded-md text-primary shrink-0">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <span className="font-bold text-sm text-text-main tracking-tight">CRM Lite</span>
+              <span className="font-bold text-sm text-text-main tracking-tight">BussinessBridge</span>
             </div>
           </div>
 

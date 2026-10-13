@@ -1,5 +1,5 @@
 /**
- * @fileoverview sampleLeads — Default seed data for the Startup CRM Lite.
+ * @fileoverview sampleLeads — Default seed data for BussinessBridge.
  *
  * This array is used as the `initialValue` for the leads localStorage key.
  * It is only applied on first load when no persisted data exists for the key
